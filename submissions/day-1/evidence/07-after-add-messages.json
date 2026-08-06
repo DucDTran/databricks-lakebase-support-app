@@ -1,0 +1,16 @@
+[
+  {
+    "message_id": 30,
+    "ticket_id": 16,
+    "message_text": "First evidence message posted through the deployed application backend.",
+    "author": "dwc.tran@example.com",
+    "created_at": "2026-08-06T05:04:11.316561+00:00"
+  },
+  {
+    "message_id": 31,
+    "ticket_id": 16,
+    "message_text": "Second evidence message confirms the related messages table writes are persisted.",
+    "author": "support.lead@example.com",
+    "created_at": "2026-08-06T05:04:12.496588+00:00"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "ticket_id": 2,
+    "title": "Customer data sync is delayed",
+    "status": "open",
+    "priority": "urgent",
+    "category": "data",
+    "message_count": 3,
+    "created_by": "liam@company.com",
+    "created_at": "2026-08-06T04:01:54.254306+00:00"
+  },
+  {
+    "ticket_id": 1,
+    "title": "Cannot access internal dashboard",
+    "status": "open",
+    "priority": "high",
+    "category": "access",
+    "message_count": 2,
+    "created_by": "maya@company.com",
+    "created_at": "2026-08-06T04:01:54.254306+00:00"
+  },
+  {
+    "ticket_id": 3,
+    "title": "Billing export request",
+    "status": "resolved",
+    "priority": "medium",
+    "category": "billing",
+    "message_count": 2,
+    "created_by": "nora@company.com",
+    "created_at": "2026-08-06T04:01:54.254306+00:00"
+  },
+  {
+    "ticket_id": 14,
+    "title": "UX verification ticket",
+    "status": "in_progress",
+    "priority": "low",
+    "category": "verification",
+    "message_count": 1,
+    "created_by": "codex@databricks.local",
+    "created_at": "2026-08-06T04:51:26.126970+00:00"
+  },
+  {
+    "ticket_id": 7,
+    "title": "Deployment verification ticket",
+    "status": "in_progress",
+    "priority": "low",
+    "category": "qa",
+    "message_count": 2,
+    "created_by": "codex@local",
+    "created_at": "2026-08-06T04:11:50.734595+00:00"
+  }
+]

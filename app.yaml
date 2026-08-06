@@ -1,0 +1,6 @@
+command:
+  - python
+  - server.py
+env:
+  - name: ENDPOINT_NAME
+    valueFrom: postgres

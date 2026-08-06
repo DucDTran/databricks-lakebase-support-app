@@ -1,0 +1,13 @@
+[
+  {
+    "ticket_id": 16,
+    "title": "Submission evidence ticket",
+    "status": "open",
+    "priority": "high",
+    "category": "submission",
+    "message_count": 0,
+    "created_by": "dwc.tran@example.com",
+    "created_at": "2026-08-06T05:03:35.940874+00:00",
+    "updated_at": "2026-08-06T05:03:35.940874+00:00"
+  }
+]

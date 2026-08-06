@@ -1,0 +1,9 @@
+{
+  "ticket_count": 6,
+  "statuses": [
+    "in_progress",
+    "open",
+    "resolved"
+  ],
+  "tickets_below_two_messages": []
+}
