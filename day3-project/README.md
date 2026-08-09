@@ -49,6 +49,13 @@ with the system prompt in `agent/system_prompt.md` and uses the registered
 Unity Catalog MCP Service as its tool source. No Databricks token or secret is
 stored in this repository.
 
+Connection authentication note: the workspace connection was initially
+validated with a short-lived OAuth bearer token from the authenticated CLI
+profile. The token is stored only by Databricks in the connection and is not
+committed here. Because bearer tokens expire, rotate this connection to a
+durable U2M or M2M OAuth configuration before using the agent as a long-lived
+service.
+
 ## Dashboard design direction
 
 The optional dashboard reads as a technical operator surface rather than a
