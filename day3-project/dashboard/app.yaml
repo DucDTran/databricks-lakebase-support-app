@@ -1,0 +1,8 @@
+command:
+  - "python"
+  - "app.py"
+
+resources:
+  - name: requirements
+    source:
+      path: ./requirements.txt

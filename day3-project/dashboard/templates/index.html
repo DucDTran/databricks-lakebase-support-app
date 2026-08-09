@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Weather Forecast Agent operator dashboard" />
+    <title>Weather Forecast Agent</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Weather Forecast Agent home">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>Weather Forecast Agent</span>
+        </a>
+        <span class="service-status"><span class="status-dot" aria-hidden="true"></span> Open-Meteo connected</span>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="page-title">
+          <div class="hero-copy">
+            <p class="eyebrow">Operator view</p>
+            <h1 id="page-title">A forecast you can act on.</h1>
+            <p class="hero-text">Run a weather question, inspect the forecast signals, and keep a compact record of recent recommendations.</p>
+          </div>
+          <div class="hero-note" aria-label="Prediction rule">
+            <span class="note-label">Umbrella rule</span>
+            <strong>40% rain probability</strong>
+            <span>or 0.3 mm forecast precipitation</span>
+          </div>
+        </section>
+
+        <section class="workspace" aria-label="Weather query workspace">
+          <div class="query-panel panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">New query</p>
+                <h2>Ask the forecast</h2>
+              </div>
+              <span class="panel-index">MCP / 01</span>
+            </div>
+            <form id="query-form">
+              <label for="location">Location</label>
+              <input id="location" name="location" value="Chicago, IL" autocomplete="address-level2" required />
+              <p class="field-help">Use a city and state, city and country, or latitude,longitude.</p>
+
+              <label for="date">Forecast date</label>
+              <input id="date" name="date" type="date" />
+              <p class="field-help">Leave blank to use tomorrow.</p>
+
+              <label for="question">Question label <span class="optional">optional</span></label>
+              <input id="question" name="question" placeholder="Will I need an umbrella?" />
+
+              <button id="submit-button" type="submit">Run prediction <span aria-hidden="true">↗</span></button>
+              <p id="form-error" class="form-error" role="alert" hidden></p>
+            </form>
+          </div>
+
+          <div class="result-panel" aria-live="polite">
+            <div class="result-header">
+              <div>
+                <p class="eyebrow">Latest result</p>
+                <h2 id="result-title">No prediction yet</h2>
+              </div>
+              <span id="result-date" class="result-date"></span>
+            </div>
+            <div id="result-body" class="result-body empty-state">
+              <div class="empty-orbit" aria-hidden="true"></div>
+              <p>Run a query to see a forecast-based recommendation.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="history-section" aria-labelledby="history-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Recent activity</p>
+              <h2 id="history-title">Prediction log</h2>
+            </div>
+            <p class="section-copy">Stored in process memory for this app instance.</p>
+          </div>
+          <div id="history-list" class="history-list">
+            <div class="history-empty">No recent queries. Your first result will appear here.</div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>Weather data: Open-Meteo</span>
+        <span>Databricks App demo</span>
+      </footer>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

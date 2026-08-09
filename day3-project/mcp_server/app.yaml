@@ -1,0 +1,14 @@
+command:
+  - "python"
+  - "weather_mcp_server.py"
+
+resources:
+  - name: requirements
+    source:
+      path: ./requirements.txt
+
+env:
+  - name: LOG_LEVEL
+    value: "INFO"
+  - name: WEATHER_USER_AGENT
+    value: "databricks-weather-prediction-homework/1.0"

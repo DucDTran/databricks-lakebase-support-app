@@ -1,0 +1,17 @@
+{
+  "mcp_server_name": "weather-forecast-mcp",
+  "tools": [
+    "get_current_weather",
+    "get_forecast",
+    "predict_umbrella_needed",
+    "get_travel_recommendation",
+    "get_severe_weather_alerts",
+    "get_historical_weather",
+    "compare_weather"
+  ],
+  "notes": {
+    "primary_source": "Open-Meteo",
+    "alerts_source": "National Weather Service for U.S. locations",
+    "auth": "No API key required. Access is controlled by Databricks App and MCP permissions."
+  }
+}

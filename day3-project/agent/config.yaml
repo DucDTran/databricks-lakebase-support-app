@@ -1,0 +1,14 @@
+# Declarative handoff for the Agent Bricks Supervisor Agent.
+# The MCP is registered in Unity Catalog, then attached to the Supervisor
+# through the workspace UI or Supervisor Agents API.
+
+name: weather-forecast-agent
+type: supervisor-agent
+external_mcp:
+  name: workspace.default.weather_forecast_mcp
+  endpoint: https://weather-forecast-mcp-7474655808298242.aws.databricksapps.com/mcp
+  transport: streamable-http
+  authentication: workspace-app-permissions
+system_prompt_file: ./system_prompt.md
+tools_file: ./tool_manifest.json
+evaluation_prompts_file: ./sample_prompts.json
