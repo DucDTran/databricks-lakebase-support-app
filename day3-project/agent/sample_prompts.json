@@ -1,18 +1,28 @@
 [
   {
     "prompt": "Will I need an umbrella in Chicago tomorrow?",
-    "expected_tools": ["predict_umbrella_needed"]
+    "expected_tools": ["get_runtime_date", "predict_umbrella_needed"]
   },
   {
     "prompt": "Should I bring a jacket to Austin this weekend?",
-    "expected_tools": ["get_travel_recommendation"]
+    "expected_tools": ["get_runtime_date", "get_travel_recommendation"]
   },
   {
     "prompt": "Compare the weather in Seattle and Denver tomorrow for an outdoor meeting.",
-    "expected_tools": ["compare_weather"]
+    "expected_tools": ["get_runtime_date", "compare_weather"]
   },
   {
     "prompt": "Are there active severe weather alerts for Miami?",
     "expected_tools": ["get_severe_weather_alerts"]
+  },
+  {
+    "prompt": "Are there severe weather alerts in London?",
+    "expected_tools": ["get_severe_weather_alerts"],
+    "expected_behavior": "Explain that NWS alerts are U.S.-only; unsupported does not mean no alerts."
+  },
+  {
+    "prompt": "Will it rain in Springfield tomorrow?",
+    "expected_tools": ["get_runtime_date", "get_forecast"],
+    "expected_behavior": "Ask which Springfield instead of guessing when geocoding is ambiguous."
   }
 ]

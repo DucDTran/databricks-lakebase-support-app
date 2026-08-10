@@ -1,6 +1,7 @@
 {
   "mcp_server_name": "weather-forecast-mcp",
   "tools": [
+    "get_runtime_date",
     "get_current_weather",
     "get_forecast",
     "predict_umbrella_needed",

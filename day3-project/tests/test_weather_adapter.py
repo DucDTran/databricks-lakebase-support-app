@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "mcp_server"))
@@ -70,6 +71,32 @@ class NwsOutsideUsSession(FakeSession):
     def get(self, url: str, **kwargs: object) -> FakeResponse:
         if "api.weather.gov" in url:
             return FakeResponse({}, status_code=404)
+        return super().get(url, **kwargs)
+
+
+class AmbiguousLocationSession(FakeSession):
+    def get(self, url: str, **kwargs: object) -> FakeResponse:
+        if "geocoding-api" in url:
+            return FakeResponse(
+                {
+                    "results": [
+                        {
+                            "name": "Springfield",
+                            "admin1": "Illinois",
+                            "country_code": "US",
+                            "latitude": 39.7817,
+                            "longitude": -89.6501,
+                        },
+                        {
+                            "name": "Springfield",
+                            "admin1": "Missouri",
+                            "country_code": "US",
+                            "latitude": 37.2153,
+                            "longitude": -93.2982,
+                        },
+                    ]
+                }
+            )
         return super().get(url, **kwargs)
 
 
@@ -158,3 +185,69 @@ def test_nws_alerts_disclose_non_us_coverage() -> None:
     assert alerts["status"] == "unsupported"
     assert alerts["alerts"] == []
     assert "U.S. locations only" in alerts["message"]
+
+
+def test_ambiguous_location_is_a_clean_clarification_error() -> None:
+    adapter = WeatherAdapter(session=AmbiguousLocationSession(forecast_payload()))
+
+    try:
+        adapter.resolve_location("Springfield")
+    except WeatherAdapterError as exc:
+        message = str(exc)
+        assert "ambiguous" in message
+        assert "Illinois" in message
+        assert "Missouri" in message
+    else:  # pragma: no cover
+        raise AssertionError("Expected an ambiguity clarification error")
+
+
+def test_compare_weather_echoes_one_selected_date_for_every_location() -> None:
+    adapter = WeatherAdapter(session=FakeSession(forecast_payload()))
+
+    comparison = adapter.compare_weather(
+        ["Seattle, WA", "Denver, CO"],
+        requested_date="2026-08-11",
+    )
+
+    assert comparison["date"] == "2026-08-11"
+    assert {row["date"] for row in comparison["locations"]} == {"2026-08-11"}
+
+
+def test_relative_date_uses_runtime_clock_and_discloses_timezone() -> None:
+    adapter = WeatherAdapter(
+        session=FakeSession(forecast_payload()),
+        timezone_name="Asia/Ho_Chi_Minh",
+        today_provider=lambda: date(2026, 8, 10),
+    )
+
+    runtime = adapter.get_runtime_date()
+    prediction = adapter.predict_umbrella_needed("41.8781,-87.6298")
+
+    assert runtime == {
+        "status": "success",
+        "today": "2026-08-10",
+        "timezone": "Asia/Ho_Chi_Minh",
+        "source": "Weather MCP runtime clock",
+    }
+    assert prediction["runtime_today"] == "2026-08-10"
+    assert prediction["runtime_timezone"] == "Asia/Ho_Chi_Minh"
+    assert prediction["date"] == "2026-08-11"
+
+
+def test_evidence_relative_dates_and_final_answers_match_tool_results() -> None:
+    evidence = (Path(__file__).parents[1] / "evidence" / "sample_runs.md").read_text()
+
+    umbrella = evidence.split("## 2. Travel recommendation", 1)[0]
+    umbrella_call = umbrella.split("**Tool call 2:**", 1)[1].split(
+        "**Relevant tool result:**", 1
+    )[0]
+    assert '"date": "2026-08-11"' in umbrella_call
+    assert '"date": "2026-08-10"' not in umbrella_call
+    assert "2026-08-11" in umbrella
+
+    comparison = evidence.split("## 3. City comparison", 1)[1].split(
+        "## 4. Severe-alert coverage", 1
+    )[0]
+    assert '"date": "2026-08-11"' in comparison
+    assert "For **2026-08-11**" in comparison
+    assert "August 10" not in comparison

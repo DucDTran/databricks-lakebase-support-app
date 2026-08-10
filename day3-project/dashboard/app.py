@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from collections import deque
-from datetime import date, timedelta
 from typing import Any
 
 from flask import Flask, jsonify, render_template, request
@@ -49,7 +48,7 @@ def query_weather() -> Any:
         return jsonify({"error": str(exc)}), 502
     entry = {
         "question": payload.get("question") or f"Weather recommendation for {prediction['location']}",
-        "created_at": date.today().isoformat(),
+        "created_at": prediction["runtime_today"],
         **prediction,
     }
     history.appendleft(entry)

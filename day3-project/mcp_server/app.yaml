@@ -12,3 +12,5 @@ env:
     value: "INFO"
   - name: WEATHER_USER_AGENT
     value: "databricks-weather-prediction-homework/1.0"
+  - name: WEATHER_TIMEZONE
+    value: "UTC"

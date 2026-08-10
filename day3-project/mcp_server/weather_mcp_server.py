@@ -49,6 +49,22 @@ def _safe_call(function: Callable[..., T], *args: Any, **kwargs: Any) -> T | dic
 
 
 @mcp.tool
+def get_runtime_date() -> dict[str, Any]:
+    """Get the runtime date and timezone used for relative-date questions.
+
+    Args:
+        None.
+
+    Returns:
+        A JSON object containing the exact runtime date, configured IANA
+        timezone, and source label. Use this before converting words such as
+        "today" or "tomorrow" into an ISO date.
+    """
+
+    return _safe_call(adapter.get_runtime_date)  # type: ignore[return-value]
+
+
+@mcp.tool
 def get_current_weather(location: str) -> dict[str, Any]:
     """Get current temperature, conditions, humidity, and wind.
 

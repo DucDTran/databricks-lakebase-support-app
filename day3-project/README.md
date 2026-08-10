@@ -16,7 +16,7 @@ flowchart LR
   B2 --> O
 ```
 
-- `mcp_server/weather_mcp_server.py` exposes seven FastMCP tools with
+- `mcp_server/weather_mcp_server.py` exposes eight FastMCP tools with
   `@mcp.tool` decorators and Streamable HTTP transport.
 - `mcp_server/weather_adapter.py` contains every HTTP call, location resolver,
   WMO code mapping, response normalization, threshold rule, and error message.
@@ -26,15 +26,19 @@ flowchart LR
   latest recommendation, loading state, error state, empty state, and recent
   in-process prediction history.
 - `tests/` covers location resolution, current conditions, derived umbrella
-  logic, historical lookup, and clean invalid-date handling without network
-  calls.
-- `evidence/sample_runs.md` records three natural-language agent examples with
-  tool calls and final answers.
+  logic, historical lookup, clean invalid-date handling, runtime-date
+  injection, and comparison date consistency without network calls.
+- `evidence/sample_runs.md` records natural-language agent examples with
+  explicit ISO dates, sources, timestamps, alert coverage, and guardrail
+  behavior.
 
 ## Deployed workspace resources
 
-The implementation has been deployed and tested in the Databricks workspace
-used for this submission:
+The implementation was deployed and tested in the Databricks workspace used
+for this submission. The post-fix source has also been synced to the same
+workspace App source path; after the App is started, redeploy it and refresh
+the Agent Bricks prompt/tool selection so the live resource picks up
+`get_runtime_date` and the corrected date protocol.
 
 - MCP Databricks App: `weather-forecast-mcp`
 - MCP endpoint: `https://weather-forecast-mcp-7474655808298242.aws.databricksapps.com/mcp`
@@ -44,7 +48,7 @@ used for this submission:
 - Agent endpoint: `mas-705694e8-endpoint`
 - Optional dashboard App: `weather-forecast-dashboard`
 
-The MCP service exposes all seven tools. The Agent Bricks agent is configured
+The MCP service exposes all eight tools. The Agent Bricks agent is configured
 with the system prompt in `agent/system_prompt.md` and uses the registered
 Unity Catalog MCP Service as its tool source. No Databricks token or secret is
 stored in this repository.
@@ -87,6 +91,7 @@ than a direct station observation.
 
 | Tool | Purpose | Source |
 | --- | --- | --- |
+| `get_runtime_date()` | Runtime date and timezone used to interpret today/tomorrow | MCP runtime clock |
 | `get_current_weather(location)` | Temperature, feels-like temperature, conditions, humidity, wind | Open-Meteo forecast |
 | `get_forecast(location, days)` | Daily high/low, conditions, precipitation probability and amount, wind | Open-Meteo forecast |
 | `predict_umbrella_needed(location, date)` | Applies a documented rain threshold and explains the result | Derived from forecast |
@@ -100,6 +105,14 @@ umbrella when the maximum precipitation probability is at least 40%, daily
 precipitation is at least 0.3 mm, or the WMO condition code indicates rain,
 snow, or thunderstorms. The tool returns the selected forecast day, the raw
 signals, the rule, and a sentence explaining which signals fired.
+
+Relative dates are resolved through `get_runtime_date()`. The server uses the
+IANA timezone in `WEATHER_TIMEZONE` (set to `UTC` in the Databricks App
+configuration) and returns the runtime date and timezone with derived results.
+The agent must call this tool before interpreting "today", "tomorrow", or
+another relative phrase, then pass the resulting explicit ISO date to the
+weather tool. This makes the date in a final answer auditable instead of
+depending on the server host's implicit local timezone.
 
 ## Run locally
 
@@ -161,6 +174,16 @@ pattern.
 5. Confirm the app has the expected HTTP route before registering it. The
    primary Open-Meteo path does not require Databricks secrets.
 
+For an existing stopped App, start it before deploying the synced source:
+
+```bash
+databricks auth login --host https://dbc-32f70083-28be.cloud.databricks.com
+databricks apps start weather-forecast-mcp
+databricks apps deploy weather-forecast-mcp \
+  --source-code-path /Workspace/Users/dinhductran189@gmail.com/day3-project/mcp_server \
+  --auto-approve
+```
+
 ### 2. Register the external MCP
 
 In the workspace, open AI Gateway or the MCP registration surface, choose Add
@@ -199,6 +222,12 @@ exercise.
   results. The system prompt tells the agent to report the failure rather than
   guess.
 - The MCP server never makes raw HTTP calls inside a decorated tool function.
+- Relative-date requests are never inferred from a stale sample or prior turn:
+  `get_runtime_date()` supplies the runtime date, and all forecast/comparison
+  calls use an explicit ISO date.
+- Successful answers must echo the exact `location`, `date`, and `source`
+  fields from the tool result. Comparison answers must verify that the
+  top-level date matches every location row.
 - The prompt requires current/future/past/comparison questions to use the
   corresponding tool family and forbids unsupported weather claims.
 - NWS alert coverage is disclosed as U.S.-only.
@@ -211,6 +240,7 @@ exercise.
 - [x] Separate adapter module with all HTTP and parsing logic
 - [x] Streamable HTTP server entrypoint, `requirements.txt`, and `app.yaml`
 - [x] Agent Bricks system prompt, tool list, and registration steps
-- [x] Three natural-language demonstrations with tool calls and answers
+- [x] Natural-language demonstrations with explicit dates, timestamps, and
+  tool calls/answers
 - [x] Stretch tools for alerts, historical weather, comparison, and travel advice
 - [x] Optional dashboard app with responsive states and accessible form labels

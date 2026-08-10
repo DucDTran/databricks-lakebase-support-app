@@ -7,8 +7,10 @@ The MCP server remains the source of truth for the full tool surface.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+import os
+from datetime import date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 
@@ -47,9 +49,19 @@ class DashboardWeatherError(RuntimeError):
 class WeatherAdapter:
     def __init__(self) -> None:
         self.session = requests.Session()
+        self.timezone_name = os.getenv("WEATHER_TIMEZONE", "UTC")
+        try:
+            self.timezone = ZoneInfo(self.timezone_name)
+        except ZoneInfoNotFoundError as exc:
+            raise DashboardWeatherError(
+                f"Unknown WEATHER_TIMEZONE {self.timezone_name!r}; use an IANA timezone"
+            ) from exc
         self.session.headers.update(
             {"Accept": "application/json", "User-Agent": "databricks-weather-dashboard/1.0"}
         )
+
+    def _today(self) -> date:
+        return datetime.now(self.timezone).date()
 
     def _get(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -86,8 +98,13 @@ class WeatherAdapter:
 
     def predict(self, location: str, requested_date: str | None = None) -> dict[str, Any]:
         label, latitude, longitude = self.resolve(location)
-        target = date.fromisoformat(requested_date) if requested_date else date.today() + timedelta(days=1)
-        span = max(1, (target - date.today()).days + 1)
+        runtime_today = self._today()
+        target = (
+            date.fromisoformat(requested_date)
+            if requested_date
+            else runtime_today + timedelta(days=1)
+        )
+        span = max(1, (target - runtime_today).days + 1)
         payload = self._get(
             FORECAST_URL,
             {
@@ -121,4 +138,6 @@ class WeatherAdapter:
             "bring_umbrella": umbrella,
             "recommendation": "Bring an umbrella" if umbrella else "An umbrella is optional",
             "rule": "Umbrella at 40% rain probability, 0.3 mm precipitation, or rain-coded conditions",
+            "runtime_today": runtime_today.isoformat(),
+            "runtime_timezone": self.timezone_name,
         }

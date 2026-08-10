@@ -11,7 +11,9 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from collections.abc import Callable
 from typing import Any, Mapping, Sequence
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 
@@ -121,9 +123,19 @@ class WeatherAdapter:
         *,
         timeout: float | tuple[float, float] = (8.0, 30.0),
         user_agent: str | None = None,
+        timezone_name: str | None = None,
+        today_provider: Callable[[], date] | None = None,
     ) -> None:
         self.session = session or requests.Session()
         self.timeout = timeout
+        self.timezone_name = timezone_name or os.getenv("WEATHER_TIMEZONE", "UTC")
+        try:
+            self.timezone = ZoneInfo(self.timezone_name)
+        except ZoneInfoNotFoundError as exc:
+            raise WeatherAdapterError(
+                f"Unknown WEATHER_TIMEZONE {self.timezone_name!r}; use an IANA timezone"
+            ) from exc
+        self._today_provider = today_provider
         self.session.headers.update(
             {
                 "Accept": "application/json",
@@ -134,6 +146,27 @@ class WeatherAdapter:
                 ),
             }
         )
+
+    def _today(self) -> date:
+        """Return the runtime date in the configured agent timezone.
+
+        A provider can be injected by tests so relative-date behavior is
+        deterministic around midnight and daylight-saving transitions.
+        """
+
+        if self._today_provider is not None:
+            return self._today_provider()
+        return datetime.now(self.timezone).date()
+
+    def get_runtime_date(self) -> dict[str, Any]:
+        """Return the runtime date used to interpret relative date phrases."""
+
+        return {
+            "status": "success",
+            "today": self._today().isoformat(),
+            "timezone": self.timezone_name,
+            "source": "Weather MCP runtime clock",
+        }
 
     def _get_json(
         self,
@@ -206,12 +239,25 @@ class WeatherAdapter:
 
         payload = self._get_json(
             OPEN_METEO_GEOCODING_URL,
-            params={"name": text, "count": 1, "language": "en", "format": "json"},
+            params={"name": text, "count": 5, "language": "en", "format": "json"},
         )
         results = payload.get("results", []) if isinstance(payload, Mapping) else []
         if not results or not isinstance(results[0], Mapping):
             raise WeatherAdapterError(
                 f"Could not resolve {text!r}. Try 'City, Country' or coordinates."
+            )
+        if len(results) > 1:
+            choices = []
+            for result in results[:3]:
+                if not isinstance(result, Mapping):
+                    continue
+                choice_parts = [result.get("name"), result.get("admin1"), result.get("country_code")]
+                choice = ", ".join(str(part) for part in choice_parts if part)
+                if choice:
+                    choices.append(choice)
+            suffix = f" Matches include: {'; '.join(choices)}." if choices else ""
+            raise WeatherAdapterError(
+                f"Location {text!r} is ambiguous. Add a state or country, or use coordinates.{suffix}"
             )
         first = results[0]
         lat, lon = self._validate_coordinates(first.get("latitude"), first.get("longitude"))
@@ -345,14 +391,15 @@ class WeatherAdapter:
         returns the inputs and reasoning so an agent can explain the judgment.
         """
 
+        runtime_today = self._today()
         target = (
             _date_value(requested_date, field_name="date")
             if requested_date
-            else date.today() + timedelta(days=1)
+            else runtime_today + timedelta(days=1)
         )
-        if target < date.today():
+        if target < runtime_today:
             raise WeatherAdapterError("Prediction date must be today or later")
-        span = max(1, (target - date.today()).days + 1)
+        span = max(1, (target - runtime_today).days + 1)
         # Open-Meteo starts daily data at the location's local date. Adding a
         # small cushion prevents a date near midnight in another time zone from
         # being rejected even though it is within the requested forecast window.
@@ -382,6 +429,8 @@ class WeatherAdapter:
             "forecast": dict(day),
             "rule": "umbrella if probability >= 40%, precipitation >= 0.3 mm, or precipitation-coded conditions",
             "source": forecast["source"],
+            "runtime_today": runtime_today.isoformat(),
+            "runtime_timezone": self.timezone_name,
         }
 
     def get_travel_recommendation(self, location: str, requested_date: str | None = None) -> dict[str, Any]:
@@ -470,7 +519,7 @@ class WeatherAdapter:
         """Return daily historical weather from Open-Meteo's archive API."""
 
         target = _date_value(requested_date, field_name="date")
-        if target >= date.today():
+        if target >= self._today():
             raise WeatherAdapterError("Historical date must be before today")
         resolved = self.resolve_location(location)
         payload = self._get_json(
@@ -505,14 +554,15 @@ class WeatherAdapter:
             raise WeatherAdapterError("locations must be a list of at least two places")
         if not 2 <= len(locations) <= 5:
             raise WeatherAdapterError("Compare between 2 and 5 locations")
+        runtime_today = self._today()
         target = (
             _date_value(requested_date, field_name="date")
             if requested_date
-            else date.today() + timedelta(days=1)
+            else runtime_today + timedelta(days=1)
         )
-        if target < date.today():
+        if target < runtime_today:
             raise WeatherAdapterError("Comparison date must be today or later")
-        span = max(1, (target - date.today()).days + 1)
+        span = max(1, (target - runtime_today).days + 1)
         rows = []
         for location in locations:
             forecast = self.get_forecast(str(location), days=min(16, span + 2))
@@ -539,4 +589,6 @@ class WeatherAdapter:
             "best_for_outdoor_plans": driest["location"],
             "warmest_location": warmest["location"],
             "source": "Open-Meteo",
+            "runtime_today": runtime_today.isoformat(),
+            "runtime_timezone": self.timezone_name,
         }

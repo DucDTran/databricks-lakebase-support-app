@@ -6,3 +6,7 @@ resources:
   - name: requirements
     source:
       path: ./requirements.txt
+
+env:
+  - name: WEATHER_TIMEZONE
+    value: "UTC"
